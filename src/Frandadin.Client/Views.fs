@@ -4,9 +4,9 @@
 module Views =
     open Bolero
 
-    type Shell = Template<"wwwroot/views/shell.html">
-    type Home = Template<"wwwroot/views/home.html">
-    type Auth = Template<"wwwroot/views/auth.html">
-    type Recipe = Template<"wwwroot/views/recipe.html">
-    type Recipes = Template<"wwwroot/views/recipes.html">
-    type Notes = Template<"wwwroot/views/notes.html">
+    type Shell = Template<"views/shell.html">
+    type Home = Template<"views/home.html">
+    type Auth = Template<"views/auth.html">
+    type Recipe = Template<"views/recipe.html">
+    type Recipes = Template<"views/recipes.html">
+    type Notes = Template<"views/notes.html">
