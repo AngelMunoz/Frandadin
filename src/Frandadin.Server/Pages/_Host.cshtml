@@ -1,0 +1,20 @@
+﻿@page "/"
+@namespace Frandadin.Server
+@using Bolero.Server.RazorHost
+@inject IBoleroHostConfig BoleroHostConfig
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bolero Application</title>
+  <base href="/">
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+  <link rel="stylesheet" href="css/index.css">
+</head>
+  <body>
+    <div id="main">@(await Html.RenderComponentAsync<Frandadin.Client.Main.FrandadinApp>(BoleroHostConfig))</div>
+    @Html.RenderBoleroScript(BoleroHostConfig)
+  </body>
+</html>
