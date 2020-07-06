@@ -1,9 +1,6 @@
 ﻿namespace Frandadin.Client
 
-
 module Types =
-
-    type ImageUrl = ImageUrl of string
 
     type Ingredient = 
         { id: int
@@ -14,13 +11,13 @@ module Types =
         { id: int
           order: int
           directions: string
-          imageUrl: Option<ImageUrl> }
+          imageUrl: Option<string> }
 
     type Recipe = 
         { id: int
           userid: int
           title: string 
-          imageUrl: Option<ImageUrl>
+          imageUrl: Option<string>
           description: Option<string>
           notes: Option<string>
           ingredients: list<Ingredient>
