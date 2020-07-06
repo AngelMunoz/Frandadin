@@ -87,63 +87,62 @@ type AuthService(ctx: IRemoteContext, env: IWebHostEnvironment) =
     inherit RemoteHandler<Client.Services.AuthService>()
 
     override __.Handler = 
-        {
-            getUser = 
-                ctx.Authorize 
-                <| fun () -> 
-                    async { 
-                        return ctx.HttpContext.User.Identity.Name
-                    }
-            login = 
-                fun payload -> 
-                    async {
-                        let! result = Auth.findUser payload.email
-                        match result with 
-                        | Some user ->
-                            match Auth.BCryptNet.EnhancedVerify(payload.password, user.password) with 
-                            | true ->
-                                do! ctx.HttpContext.AsyncSignIn(user.email, TimeSpan.FromDays(1.), [Claim(ClaimTypes.NameIdentifier, string user.id)])
-                                return Result.Ok { user = { id = user.id; name = user.name; lastName = user.lastName; email = user.email }  }
-                            | false ->
-                                ctx.HttpContext.Response.StatusCode <- 401
-                                return Result.Error { message = "Invalid credentials"; code = Some 401; errors = List.empty }
-                        | None ->
-                            ctx.HttpContext.Response.StatusCode <- 404
-                            return Result.Error { message = "Not Found"; code = Some 404; errors = List.empty }
-                    }
-            logout = fun () -> ctx.HttpContext.AsyncSignOut()
-            signup = 
-                fun payload ->
-                    async {
-                        let valResult = Validators.validateSignup payload
-                        match valResult with 
-                        | ValidationState.Ok ->
-                            let! exists = Auth.checkExists payload.email
-                            if not exists then
-                                let! signedUp = 
-                                    Auth.signupUser 
-                                        {| email = payload.email
-                                           password = Auth.BCryptNet.EnhancedHashPassword(payload.password)
-                                           name = payload.name
-                                           lastName = payload.lastName |}
-                        
-                                match signedUp with
-                                | Result.Ok user -> 
-                                    do! ctx.HttpContext.AsyncSignIn(user.email, TimeSpan.FromDays(1.), [Claim(ClaimTypes.NameIdentifier, string user.id)])
-                                    return Result.Ok { user = user }
-                                | Result.Error err -> 
-                                    eprintfn "%O" err
-                                    ctx.HttpContext.Response.StatusCode <- 400
-                                    return Result.Error { message = "Failed to signup"; code = Some 400; errors = List.empty }
-                            else
-                                ctx.HttpContext.Response.StatusCode <- 409
-                                return Result.Error { message = "This email is already taken"; code = Some 409; errors = list.Empty }
-                        | ValidationState.Errors errors ->
-                            let err = 
-                                errors 
-                                |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message )
-                                |> String.concat ""
-                            ctx.HttpContext.Response.StatusCode <- 400
-                            return Result.Error { message = err; code = Some 400; errors = errors |> List.map (fun item -> item :> obj) }
-                    }
+        { getUser = 
+            ctx.Authorize 
+            <| fun () -> 
+                async { 
+                    return ctx.HttpContext.User.Identity.Name
+                }
+          login = 
+              fun payload -> 
+                  async {
+                      let! result = Auth.findUser payload.email
+                      match result with 
+                      | Some user ->
+                          match Auth.BCryptNet.EnhancedVerify(payload.password, user.password) with 
+                          | true ->
+                              do! ctx.HttpContext.AsyncSignIn(user.email, TimeSpan.FromDays(1.), [Claim(ClaimTypes.NameIdentifier, string user.id)])
+                              return Result.Ok { user = { id = user.id; name = user.name; lastName = user.lastName; email = user.email }  }
+                          | false ->
+                              ctx.HttpContext.Response.StatusCode <- 401
+                              return Result.Error { message = "Invalid credentials"; code = Some 401; errors = List.empty }
+                      | None ->
+                          ctx.HttpContext.Response.StatusCode <- 404
+                          return Result.Error { message = "Not Found"; code = Some 404; errors = List.empty }
+                  }
+          logout = fun () -> ctx.HttpContext.AsyncSignOut()
+          signup = 
+              fun payload ->
+                  async {
+                      let valResult = Validators.validateSignup payload
+                      match valResult with 
+                      | ValidationState.Ok ->
+                          let! exists = Auth.checkExists payload.email
+                          if not exists then
+                              let! signedUp = 
+                                  Auth.signupUser 
+                                      {| email = payload.email
+                                         password = Auth.BCryptNet.EnhancedHashPassword(payload.password)
+                                         name = payload.name
+                                         lastName = payload.lastName |}
+                      
+                              match signedUp with
+                              | Result.Ok user -> 
+                                  do! ctx.HttpContext.AsyncSignIn(user.email, TimeSpan.FromDays(1.), [Claim(ClaimTypes.NameIdentifier, string user.id)])
+                                  return Result.Ok { user = user }
+                              | Result.Error err -> 
+                                  eprintfn "%O" err
+                                  ctx.HttpContext.Response.StatusCode <- 400
+                                  return Result.Error { message = "Failed to signup"; code = Some 400; errors = List.empty }
+                          else
+                              ctx.HttpContext.Response.StatusCode <- 409
+                              return Result.Error { message = "This email is already taken"; code = Some 409; errors = list.Empty }
+                      | ValidationState.Errors errors ->
+                          let err = 
+                              errors 
+                              |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message )
+                              |> String.concat ""
+                          ctx.HttpContext.Response.StatusCode <- 400
+                          return Result.Error { message = err; code = Some 400; errors = errors |> List.map (fun item -> item :> obj) }
+                  }
         }
