@@ -342,4 +342,4 @@ healthchecksdb
 .ionide
 .dbeaver
 .project
-src/sql/Scripts
+src/sql/Scripts/
