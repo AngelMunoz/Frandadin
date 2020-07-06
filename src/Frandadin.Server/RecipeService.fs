@@ -10,7 +10,6 @@ open Frandadin
 type RecipeService(ctx: IRemoteContext, env: IWebHostEnvironment) =
     inherit RemoteHandler<Client.Services.RecipeService>()
 
-
     override __.Handler = 
         {
             find = fun pagination -> failwith "Not Implemented Exception"
