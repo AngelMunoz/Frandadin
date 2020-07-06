@@ -5,6 +5,14 @@ module Validators =
     open AccidentalFish.FSharp.Validation
     open Types
 
+    let stringifyErrors (errors: list<ValidationItem>) =
+        errors 
+        |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message )
+        |> String.concat ""
+
+    let objectifyList (errors: list<ValidationItem>) =
+        errors |> List.map (fun item -> item :> obj)
+
     let validateSignup = 
         createValidatorFor<SignUpPayload>()
             { validate (fun sp -> sp.name) [
@@ -32,9 +40,15 @@ module Validators =
                         | true -> Ok
                         | false -> 
                             Errors(
-                                [{ errorCode = "Invalid password"
-                                   message = "This password needs to contain A Lower case A Upper case letters and at least 8 characters"
-                                   property = "password" }
+                                [ { errorCode = "password:failed"
+                                    message = "This password needs to contain A Lower case letter."
+                                    property = "password" }
+                                  { errorCode = "password:failed"
+                                    message = "This password needs to contain A Upper case letter."
+                                    property = "password" }
+                                  { errorCode = "password:failed"
+                                    message = "This password needs to contain at least 8 characters"
+                                    property = "password" }
                                 ])
                     )
               ]
@@ -51,5 +65,101 @@ module Validators =
                 isNotEmptyOrWhitespace
                 isNotNull
                 hasMaxLengthOf 100
+              ]
+            }
+
+    let validateIngredient =
+        createValidatorFor<Ingredient>() 
+            { validate (fun i -> i.name) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 100
+              ]
+              validate (fun i -> i.quantity) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 30
+              ]
+            }
+
+    let validateRecipeStep =
+        createValidatorFor<RecipeStep>() 
+            { validate (fun i -> i.order) [
+                isGreaterThan 0
+              ]
+              validate (fun i -> i.directions) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 500
+              ]
+              validateUnrequired (fun i -> i.imageUrl) [
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 254
+              ]
+            }   
+    /// Used to validate Existing recipes (recipes with id and userid)   
+    let validateRecipe = 
+        createValidatorFor<Recipe>() 
+            { validate (fun r -> r.title) [
+                  isNotNull
+                  isNotEmptyOrWhitespace
+                  hasMaxLengthOf 100
+              ]
+              validateUnrequired (fun r -> r.imageUrl) [
+                  isNotEmptyOrWhitespace
+                  hasMaxLengthOf 254
+              ]
+              validateUnrequired (fun r -> r.description) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 500
+              ]
+              validateUnrequired (fun r -> r.notes) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 240
+              ]
+              validate (fun r -> r.ingredients) [
+                  eachItemWith validateIngredient
+              ]
+              validate (fun r -> r.steps) [
+                  eachItemWith validateRecipeStep
+              ]
+            }
+
+    /// Used to validate new recipes (recipes without id and userid)
+    /// hence why the usage of an anonymus record
+    let validateAnonymusRecipe =
+        createValidatorFor<
+            {| title: string 
+               imageUrl: Option<string>
+               description: Option<string>
+               notes: Option<string>
+               ingredients: list<Ingredient>
+               steps: list<RecipeStep> |}> () 
+            { validate (fun r -> r.title) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 100
+              ]
+              validateUnrequired (fun r -> r.imageUrl) [
+                  isNotEmptyOrWhitespace
+                  hasMaxLengthOf 254
+              ]
+              validateUnrequired (fun r -> r.description) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 500
+              ]
+              validateUnrequired (fun r -> r.notes) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 240
+              ]
+              validate (fun r -> r.ingredients) [
+                  eachItemWith validateIngredient
+              ]
+              validate (fun r -> r.steps) [
+                  eachItemWith validateRecipeStep
               ]
             }
