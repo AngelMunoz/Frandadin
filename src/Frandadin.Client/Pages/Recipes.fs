@@ -1,17 +1,12 @@
 ﻿namespace Frandadin.Client.Pages
 
-open System
-open Elmish
-open Bolero
-open Bolero.Json
-open Bolero.Remoting
-open Bolero.Remoting.Client
-open Bolero.Templating.Client
-open Frandadin.Client
-open Frandadin.Client.Services
-
-
 module Recipes = 
+    open Elmish
+    open Bolero
+    open Bolero.Remoting
+    open Bolero.Remoting.Client
+    open Bolero.Templating.Client
+    open Frandadin.Client.Services
 
     type State =
         { count: int }
@@ -29,11 +24,7 @@ module Recipes =
         | Decrement -> { state with count = state.count - 1 }, Cmd.none
 
     let private view (state: State) (dispatch: Msg -> unit) = 
-        Views.Recipes()
-            .Increment(fun _ -> dispatch Increment)
-            .Decrement(fun _ -> dispatch Decrement)
-            .Count(string state.count)
-            .Elt()
+        Html.article [ Classes ["fran-page"] ] [ Html.text "Recipes!" ]
 
     type RecipesPage() =
         inherit ProgramComponent<State, Msg>()
@@ -43,6 +34,3 @@ module Recipes =
             let update (msg: Msg) (state: State) = update msg state recipeService
 
             Program.mkProgram init update view
-#if DEBUG
-            |> Program.withHotReload
-#endif
