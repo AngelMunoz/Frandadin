@@ -1,5 +1,6 @@
 ﻿namespace Frandadin.Client
 
+
 module Types =
 
     type ImageUrl = ImageUrl of string
@@ -31,9 +32,7 @@ module Types =
           name: string
           lastName: string }
 
-    type AuthResponse =
-        { user: User
-          token: string }
+    type AuthResponse = { user: User }
 
     type LoginPayload = 
         { email: string
