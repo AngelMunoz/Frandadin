@@ -6,16 +6,16 @@ module Services =
 
     type RecipeService =
         {
-            find: PaginationParams -> Async<PaginationResult<Recipe>>
-            findOne: int -> Async<Recipe>
+            find: PaginationParams -> Async<Result<PaginationResult<Recipe>, ErrorResponse>>
+            findOne: int -> Async<Result<Recipe, ErrorResponse>>
             create: {| title: string 
-                       imageUrl: Option<ImageUrl>
+                       imageUrl: Option<string>
                        description: Option<string>
                        notes: Option<string>
                        ingredients: list<Ingredient>
-                       steps: list<RecipeStep> |} -> Async<Recipe>
-            update: Recipe -> Async<bool>
-            destroy: int -> Async<bool>
+                       steps: list<RecipeStep> |} -> Async<Result<Recipe, ErrorResponse>>
+            update: Recipe -> Async<Result<bool, ErrorResponse>>
+            destroy: int -> Async<Result<bool, ErrorResponse>>
         }
 
         interface IRemoteService with 

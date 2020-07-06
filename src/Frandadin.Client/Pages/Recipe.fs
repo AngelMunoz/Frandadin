@@ -16,7 +16,7 @@ module Recipe =
 
     type Msg =
         | GetRecipe of Option<int>
-        | RecvRecipe of Option<Recipe>
+        | RecvRecipe of Option<Result<Recipe, ErrorResponse>>
         | Error of exn
 
     let private init recipeId = 
@@ -32,7 +32,13 @@ module Recipe =
                 | None -> Cmd.none
             state, cmd
         | RecvRecipe recipe ->
-            { state with recipe = recipe }, Cmd.none
+            match recipe with 
+            | Some result ->
+                match result with
+                | Result.Ok recipe ->
+                    { state with recipe = Some recipe }, Cmd.none
+                | Result.Error err -> { state with error = Some err.message }, Cmd.none
+            | None -> state, Cmd.none
         | Error RemoteUnauthorizedException ->
             { state with error = Some "You have been logged out." }, Cmd.none
         | Error exn -> { state with error = Some exn.Message }, Cmd.none
