@@ -1,0 +1,5 @@
+{
+  "connection": "User ID=admin;Password=Admin123;Host=localhost;Port=5432;Database=frandadindb;",
+  "migrationsDir": "./migrations/",
+  "driver": "postgres"
+}
