@@ -4,11 +4,13 @@ module Types =
 
     type Ingredient = 
         { id: int
+          recipeid: int
           name: string 
           quantity: string }
 
     type RecipeStep = 
         { id: int
+          recipeid: int
           order: int
           directions: string
           imageUrl: Option<string> }
