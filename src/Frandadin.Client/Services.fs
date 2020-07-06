@@ -1,6 +1,5 @@
 ﻿namespace Frandadin.Client
 
-
 module Services =
     open Bolero.Remoting
     open Types
@@ -24,8 +23,10 @@ module Services =
 
     type AuthService = 
         {
-            login: LoginPayload -> Async<AuthResponse>
-            signup: SignUpPayload -> Async<AuthResponse>
+            getUser: unit -> Async<string>
+            logout: unit -> Async<unit>
+            login: LoginPayload -> Async<Result<AuthResponse, ErrorResponse>>
+            signup: SignUpPayload -> Async<Result<AuthResponse, ErrorResponse>>
         }
 
         interface IRemoteService with 
