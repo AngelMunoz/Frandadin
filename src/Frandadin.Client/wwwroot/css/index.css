@@ -1,8 +1,61 @@
-html, body {
-  height: 100%;
+
+:root {
+  --main-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  /* base color schemes */
+  --transparency: 0.70;
+  --background-color: rgba(255, 255, 255, var(--transparency, 0.70));
+  --color-default: rgba(189, 189, 189, var(--transparency, 0.70));
+  --color-info: rgba(30, 199, 237, var(--transparency, 0.70));
+  --color-warning: rgba(200, 153, 0, var(--transparency, 0.70));
+  --color-success: rgba(0, 177, 134, var(--transparency, 0.70));
+  --color-error: rgba(204, 0, 100, var(--transparency, 0.70));
+  --main-background-color: #cde8f0;
+  --main-background-image: linear-gradient(135deg, #cde8f0 27%, #dfe6aa 58%, #c59be0 100%);
 }
 
-body {
+html, body, #main, .fran-content {
+  height: 100%;
+  font-family: var(--main-font);
+}
+
+body, #main, .fran-content {
   display: flex;
   flex-direction: column;
+  background-color: var(--main-background-color);
+  background-image: var(--main-background-image);
+}
+
+.fran-bg {
+  background-color: var(--background-color);
+}
+
+.fran-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh;
+  flex: 1 0 auto;
+}
+
+.fran-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-content: center;
+  height: 20vh;
+  flex: 0 2 auto;
+  color: var(--background-color);
+}
+
+.fran-page {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-color);
+}
+
+
+.fran-auth-form {
+  margin: 1em;
+  padding: 1em;
 }
