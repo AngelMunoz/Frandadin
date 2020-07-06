@@ -17,11 +17,125 @@ module private Recipes =
     open Database
 
     let find (pagination: PaginationParams) (userId: int) : Async<Result<PaginationResult<Recipe>, exn>> =
-        failwith "Not Implemented"
+        async {
+            let offset = pagination.limit * (pagination.page - 1)
+            let! countQuery = 
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query @"SELECT COUNT(*) as total FROM recipes WHERE userId = @userid"
+                |> Sql.parameters  [ "userid", Sql.int userId ]
+                |> Sql.executeRowAsync (fun read -> read.int "total")
+            let! listQuery =
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query @"SELECT * FROM recipes WHERE userId = @userid LIMIT @limit OFFSET @offset"
+                |> Sql.parameters 
+                    [ "userid", Sql.int userId
+                      "limit", Sql.int pagination.limit
+                      "offset", Sql.int offset 
+                    ]
+                |> Sql.executeAsync 
+                    (fun read -> 
+                        { id = read.int "id"
+                          userid = read.int "userid"
+                          title = read.string "title"
+                          imageUrl = read.stringOrNone "imageurl"
+                          description = read.stringOrNone "description"
+                          notes = read.stringOrNone "notes"
+                          ingredients = List.empty
+                          steps = List.empty })
+            match countQuery, listQuery with 
+            | Result.Ok count, Result.Ok list ->
+                return Result.Ok { list = list; count = count }
+            | exceptions ->
+                let (count, query) = exceptions
+                let msg = 
+                    match count, query with 
+                    | Error count, Error query ->
+                        count.Message + "|"  + query.Message
+                    | Error count, _ ->
+                        count.Message
+                    | _, Error query ->
+                        query.Message
+                    | _, _ -> ""
+                return Error (exn (sprintf "Either Count or the list query failed \"%s\"" msg))
+                
+        }
 
+
+    let private findSubs (recipeId: int) =
+        async {
+            let queryParams = [ "recipeid" , Sql.int recipeId ]
+            let! ingredientsQuery = 
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query @"SELECT * FROM ingredients where recipeId = @recipeid"
+                |> Sql.parameters queryParams
+                |> Sql.executeAsync
+                    (fun read -> 
+                        { id = read.int "id"
+                          recipeid = read.int "recipeid"
+                          name = read.string "name"
+                          quantity = read.string "quantity"})
+            let! stepsQuery = 
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query @"SELECT * FROM recipestep where recipeId = @recipeid"
+                |> Sql.parameters queryParams
+                |> Sql.executeAsync 
+                    (fun read -> 
+                        { id = read.int "id"
+                          recipeid = read.int "recipeid"
+                          order = read.int "order"
+                          directions = read.string "directions"
+                          imageUrl = read.stringOrNone "imageurl" })
+            return (ingredientsQuery, stepsQuery)
+        }
 
     let findRecipe (id: int) (withSubs: bool) : Async<Result<Recipe, exn>> = 
-        failwith "Not Implemented"
+        async {
+            let! recipeQuery =
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query @"SELECT * FROM recipes WHERE id = @id"
+                |> Sql.parameters [ "id", Sql.int id ]
+                |> Sql.executeAsync 
+                    (fun read -> 
+                        { id = read.int "id"
+                          userid = read.int "userid"
+                          title = read.string "title"
+                          imageUrl = read.stringOrNone "imageurl"
+                          description = read.stringOrNone "description"
+                          notes = read.stringOrNone "notes"
+                          ingredients = List.empty
+                          steps = List.empty })
+
+            match withSubs with 
+            | true ->
+                let! (ingredientsResult, stepsResult) = findSubs id
+                match recipeQuery, ingredientsResult, stepsResult with 
+                | Result.Ok recipes, Result.Ok ingredients, Result.Ok steps ->
+                    return Result.Ok { recipes.Head with ingredients = ingredients; steps = steps }
+                | Result.Ok recipes, Error ingredientErrs, Error stepsErrs ->
+                    eprintfn "%O" ingredientErrs
+                    eprintfn "%O" stepsErrs
+                    return Result.Ok recipes.Head
+                | Result.Ok recipes, Error ingredientErrs, Result.Ok steps -> 
+                    eprintfn "%O" ingredientErrs
+                    return Result.Ok { recipes.Head with steps = steps }
+                | Result.Ok recipes, Result.Ok ingredients, Error stepErrs -> 
+                    eprintfn "%O" stepErrs
+                    return Result.Ok { recipes.Head with ingredients = ingredients }
+                | Result.Error recipesErr, _, _ ->
+                    return Error recipesErr
+            | false ->
+                match recipeQuery with 
+                | Result.Ok recipes -> 
+                    return Result.Ok recipes.Head
+                | Error ex -> 
+                    return Error ex
+
+        }
 
     let createRecipe 
         (preRecipe: {| title: string 
@@ -75,11 +189,107 @@ module private Recipes =
                 return Error ex
         }
 
+    let private upsertIngredients (ingredients: list<Ingredient>) (recipeId: int) : Async<bool> = 
+        async  {
+            let! result = 
+                defaultConnection
+                |> Sql.connect
+                |> Sql.executeTransactionAsync
+                    [ @"UPDATE ingredients
+                        SET name = @name,
+                            quantity = @quantity,
+                        WHERE recipeId = @recipeid", 
+                        ingredients 
+                        |> List.map(fun i -> 
+                            [ "recipeid", Sql.int recipeId
+                              "name", Sql.string i.name
+                              "quantity", Sql.string i.quantity ])
+                    ]
+            match result with 
+            | Result.Ok _ -> 
+                return true
+            | Error err -> 
+                eprintfn "%O" err
+                return false
+        }
+
+    let private upsertSteps (steps: list<RecipeStep>) (recipeId: int) : Async<bool> = 
+        async  {
+            let! result = 
+                defaultConnection
+                |> Sql.connect
+                |> Sql.executeTransactionAsync
+                    [ @"UPDATE steps
+                        SET stepOrder = @steporder,
+                            directions = @directions,
+                            imageUrl = @imageurl,
+                        WHERE recipeId = @recipeid", 
+                        steps 
+                        |> List.map(fun s -> 
+                            [ "recipeid", Sql.int recipeId
+                              "steporder", Sql.int s.order
+                              "directions", Sql.string s.directions
+                              "imageUrl", Sql.stringOrNone s.imageUrl ] )
+                    ]
+            match result with 
+            | Result.Ok _ -> 
+                return true
+            | Error err -> 
+                eprintfn "%O" err
+                return false
+        }
+
     let update (recipe: Recipe) : Async<Result<bool, exn>> = 
-        failwith "Not Implemented"
+        async {
+            let! recipeQuery =
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query 
+                    @"UPDATE recipes
+                      SET title = @title,
+                          imageUrl = @imageurl,
+                          description = @description,
+                          notes = @notes
+                      WHERE id = @id"
+                |> Sql.parameters
+                    [ "id", Sql.int recipe.id
+                      "title", Sql.string recipe.title
+                      "imageurl", Sql.stringOrNone recipe.imageUrl
+                      "description", Sql.stringOrNone recipe.description
+                      "notes", Sql.stringOrNone recipe.notes
+                    ]
+                |> Sql.executeNonQueryAsync
+
+            let! ingredientsQuery =  upsertIngredients recipe.ingredients recipe.id
+            let! stepsQuery =  upsertSteps recipe.steps recipe.id
+
+            match recipeQuery, ingredientsQuery, stepsQuery with 
+            | Result.Ok _, true, true ->
+                return Result.Ok true
+            | Result.Ok _, false, false  ->
+                return Error (exn "Recipe Updated but Failed to update ingredients and steps")
+            | Result.Ok _, true, false ->
+                return Error (exn "Recipe Updated but Failed to update steps")
+            | Result.Ok _, false, true ->
+                return Error (exn "Recipe Updated but Failed to update ingredients")
+            | Result.Error err, _, _ ->
+                return Error err
+        }
 
     let delete (recipeId: int) : Async<Result<bool, exn>> = 
-        failwith "Not Implemented"
+        async  {
+            let! result =
+                defaultConnection
+                |> Sql.connect
+                |> Sql.query @"DELETE FROM recipes WHERE id = @id"
+                |> Sql.parameters [ "id", Sql.int recipeId]
+                |> Sql.executeNonQueryAsync
+            match result with 
+            | Result.Ok -> 
+                return Result.Ok true
+            | Error err -> 
+                return Error err
+        }
 
     let extractUserId (ctx: IRemoteContext) : int =
         let userNameItendifierClaim = 
