@@ -22,6 +22,8 @@ type Startup() =
                 .Services
             .AddRemoting<AuthService>()
             .AddRemoting<RecipeService>()
+            .AddRemoting<IngredientService>()
+            .AddRemoting<RecipeStepService>()
             .AddBoleroHost()
         |> ignore
 

@@ -38,7 +38,7 @@ module private Auth =
             let! result = 
                 defaultConnection
                 |> Sql.connect
-                |> Sql.query "SELECT id, name, lastName, email, password FROM users where email = @email"
+                |> Sql.query "SELECT id, name, lastname, email, password FROM users where email = @email"
                 |> Sql.parameters [ "email", Sql.string email ]
                 |> Sql.executeAsync (fun read -> 
                     {| id = read.int "id"
@@ -59,10 +59,12 @@ module private Auth =
             let! result = 
                 defaultConnection
                 |> Sql.connect
-                |> Sql.query "INSERT INTO users(name, lastName, email, password) VALUES(@name, @lastName, @email, @password) RETURNING id"
+                |> Sql.query 
+                    @"INSERT INTO users(name, lastName, email, password)
+                      VALUES(@name, @lastname, @email, @password) RETURNING id"
                 |> Sql.parameters 
                     [ "name", Sql.string payload.name
-                      "lastName"  , Sql.string payload.lastName
+                      "lastname"  , Sql.string payload.lastName
                       "email"  , Sql.string payload.email
                       "password"  , Sql.string payload.password ]
                 |> Sql.executeAsync(fun read -> read.int "id")
@@ -71,11 +73,14 @@ module private Auth =
                 let! users =
                     defaultConnection
                     |> Sql.connect
-                    |> Sql.query "SELECT id, name, lastName, email FROM users where id = @id"
+                    |> Sql.query "SELECT id, name, lastname, email FROM users where id = @id"
                     |> Sql.parameters [ "id", Sql.int list.Head ]
                     |> Sql.executeAsync(fun read -> 
-                        { id = read.int "id"; name = read.string "name"; lastName = read.string "lastname"; email = read.string "email"}
-                    )
+                        { id = read.int "id"
+                          name = read.string "name"
+                          lastName = read.string "lastname"
+                          email = read.string "email" })
+
                 return match users with 
                        | Result.Ok users -> Result.Ok users.Head
                        | Result.Error ex -> Result.Error ex

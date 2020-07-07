@@ -69,7 +69,7 @@ module private Recipes =
             let! ingredientsQuery = 
                 defaultConnection
                 |> Sql.connect
-                |> Sql.query @"SELECT * FROM ingredients where recipeId = @recipeid"
+                |> Sql.query @"SELECT * FROM ingredients where recipeid = @recipeid"
                 |> Sql.parameters queryParams
                 |> Sql.executeAsync
                     (fun read -> 
@@ -80,7 +80,7 @@ module private Recipes =
             let! stepsQuery = 
                 defaultConnection
                 |> Sql.connect
-                |> Sql.query @"SELECT * FROM recipestep where recipeId = @recipeid"
+                |> Sql.query @"SELECT * FROM recipesteps where recipeid = @recipeid"
                 |> Sql.parameters queryParams
                 |> Sql.executeAsync 
                     (fun read -> 
@@ -141,9 +141,7 @@ module private Recipes =
         (preRecipe: {| title: string 
                        imageUrl: Option<string>
                        description: Option<string>
-                       notes: Option<string>
-                       ingredients: list<Ingredient>
-                       steps: list<RecipeStep> |})
+                       notes: Option<string> |})
         (userId: int)
         : Async<Result<Recipe, exn>> =
         async {
@@ -151,12 +149,12 @@ module private Recipes =
                 defaultConnection
                 |> Sql.connect
                 |> Sql.query 
-                    @"INSERT INTO recipes(userId, title, imageUrl, description, notes)
-                      VALUES(@userId, @title, @imageUrl, @description, @notes) RETURNING id"
+                    @"INSERT INTO recipes(userid, title, imageurl, description, notes)
+                      VALUES(@userid, @title, @imageurl, @description, @notes) RETURNING id"
                 |> Sql.parameters
-                    [ "userId", Sql.int userId
+                    [ "userid", Sql.int userId
                       "title", Sql.string preRecipe.title
-                      "imageUrl", Sql.stringOrNone preRecipe.imageUrl
+                      "imageurl", Sql.stringOrNone preRecipe.imageUrl
                       "description", Sql.stringOrNone preRecipe.description
                       "notes", Sql.stringOrNone preRecipe.notes
                     ]
@@ -164,79 +162,9 @@ module private Recipes =
             
             match result with 
             | Result.Ok rows ->
-                let! subInserts = 
-                    defaultConnection
-                    |> Sql.connect
-                    |> Sql.executeTransactionAsync
-                        [ @"INSERT INTO ingredients(recipeId, name, quantity) VALUES (@recipeId, @name, @quantity)",
-                            preRecipe.ingredients 
-                            |> List.map(fun i -> 
-                                [ "recipeId", Sql.int rows.Head
-                                  "name", Sql.string i.name
-                                  "quantity", Sql.string i.quantity ] )
-                            @"INSERT INTO recipestep(recipeId, stepOrder, imageUrl, directions) VALUES (@recipeId, @stepOrder, @imageUrl, @directions)",
-                            preRecipe.steps
-                            |> List.map(fun s ->
-                                [ "recipeId", Sql.int rows.Head
-                                  "stepOrder", Sql.int s.order
-                                  "imageUrl", Sql.stringOrNone s.imageUrl
-                                  "directions", Sql.string s.directions ] )
-                        ]
-                match subInserts with 
-                | Result.Ok -> return! findRecipe rows.Head true
-                | Error ex -> return Error ex
+                return! findRecipe rows.Head true
             | Error ex ->
                 return Error ex
-        }
-
-    let private upsertIngredients (ingredients: list<Ingredient>) (recipeId: int) : Async<bool> = 
-        async  {
-            let! result = 
-                defaultConnection
-                |> Sql.connect
-                |> Sql.executeTransactionAsync
-                    [ @"UPDATE ingredients
-                        SET name = @name,
-                            quantity = @quantity,
-                        WHERE recipeId = @recipeid", 
-                        ingredients 
-                        |> List.map(fun i -> 
-                            [ "recipeid", Sql.int recipeId
-                              "name", Sql.string i.name
-                              "quantity", Sql.string i.quantity ])
-                    ]
-            match result with 
-            | Result.Ok _ -> 
-                return true
-            | Error err -> 
-                eprintfn "%O" err
-                return false
-        }
-
-    let private upsertSteps (steps: list<RecipeStep>) (recipeId: int) : Async<bool> = 
-        async  {
-            let! result = 
-                defaultConnection
-                |> Sql.connect
-                |> Sql.executeTransactionAsync
-                    [ @"UPDATE steps
-                        SET stepOrder = @steporder,
-                            directions = @directions,
-                            imageUrl = @imageurl,
-                        WHERE recipeId = @recipeid", 
-                        steps 
-                        |> List.map(fun s -> 
-                            [ "recipeid", Sql.int recipeId
-                              "steporder", Sql.int s.order
-                              "directions", Sql.string s.directions
-                              "imageUrl", Sql.stringOrNone s.imageUrl ] )
-                    ]
-            match result with 
-            | Result.Ok _ -> 
-                return true
-            | Error err -> 
-                eprintfn "%O" err
-                return false
         }
 
     let update (recipe: Recipe) : Async<Result<bool, exn>> = 
@@ -247,7 +175,7 @@ module private Recipes =
                 |> Sql.query 
                     @"UPDATE recipes
                       SET title = @title,
-                          imageUrl = @imageurl,
+                          imageurl = @imageurl,
                           description = @description,
                           notes = @notes
                       WHERE id = @id"
@@ -260,35 +188,36 @@ module private Recipes =
                     ]
                 |> Sql.executeNonQueryAsync
 
-            let! ingredientsQuery =  upsertIngredients recipe.ingredients recipe.id
-            let! stepsQuery =  upsertSteps recipe.steps recipe.id
-
-            match recipeQuery, ingredientsQuery, stepsQuery with 
-            | Result.Ok _, true, true ->
+            match recipeQuery with 
+            | Result.Ok _->
                 return Result.Ok true
-            | Result.Ok _, false, false  ->
-                return Error (exn "Recipe Updated but Failed to update ingredients and steps")
-            | Result.Ok _, true, false ->
-                return Error (exn "Recipe Updated but Failed to update steps")
-            | Result.Ok _, false, true ->
-                return Error (exn "Recipe Updated but Failed to update ingredients")
-            | Result.Error err, _, _ ->
+            | Result.Error err ->
                 return Error err
         }
 
     let delete (recipeId: int) : Async<Result<bool, exn>> = 
         async  {
-            let! result =
+            let! deleteRecipe = 
                 defaultConnection
                 |> Sql.connect
-                |> Sql.query @"DELETE FROM recipes WHERE id = @id"
-                |> Sql.parameters [ "id", Sql.int recipeId]
-                |> Sql.executeNonQueryAsync
-            match result with 
-            | Result.Ok -> 
-                return Result.Ok true
-            | Error err -> 
-                return Error err
+                |> Sql.executeTransactionAsync
+                    [ "DELETE FROM ingredients WHERE recipeId = @recipeid", [ ["recipeid", Sql.int recipeId ] ]
+                      "DELETE FROM recipesteps WHERE recipeId = @recipeid", [ ["recipeid", Sql.int recipeId ] ]
+                    ]
+            match deleteRecipe with 
+            | Result.Ok ->
+                let! result =
+                    defaultConnection
+                    |> Sql.connect
+                    |> Sql.query @"DELETE FROM recipes WHERE id = @id"
+                    |> Sql.parameters [ "id", Sql.int recipeId]
+                    |> Sql.executeNonQueryAsync
+                match result with 
+                | Result.Ok -> 
+                    return Result.Ok true
+                | Error err -> 
+                    return Error err
+             | Error err -> return Error err
         }
 
     let extractUserId (ctx: IRemoteContext) : int =
@@ -352,9 +281,7 @@ type RecipeService(ctx: IRemoteContext, env: IWebHostEnvironment) =
                             {| title = payload.title
                                imageUrl = payload.imageUrl
                                description = payload.description
-                               notes = payload.notes
-                               ingredients = payload.ingredients
-                               steps = payload.steps |}
+                               notes = payload.notes |}
                         let! recipe = Recipes.createRecipe payload userId
                         match recipe with 
                         | Result.Ok recipe ->

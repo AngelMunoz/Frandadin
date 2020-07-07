@@ -13,6 +13,3 @@ module Database =
             | Some url -> url
             | None -> "postgresql://admin:Admin123@localhost:5432/frandadindb"
         Sql.fromUri (Uri connection)
-
-
-    

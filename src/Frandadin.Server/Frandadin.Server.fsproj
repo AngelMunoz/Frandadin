@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Database.fs" />
+    <Compile Include="IngredientService.fs" />
+    <Compile Include="RecipeStepService.fs" />
     <Compile Include="RecipeService.fs" />
     <Compile Include="AuthService.fs" />
     <Compile Include="Startup.fs" />
