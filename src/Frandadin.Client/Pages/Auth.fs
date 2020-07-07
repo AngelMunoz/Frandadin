@@ -1,4 +1,4 @@
-﻿namespace Frandadin.Client.Pages
+namespace Frandadin.Client.Pages
 
 module Auth =
     open Elmish
@@ -13,22 +13,21 @@ module Auth =
         | LoginForm
         | SignUpForm
 
-    type SettableField = 
+    type SettableField =
         | Email
         | Password
         | RepeatPassword
         | FirstName
         | LastName
 
-    type State = 
+    type State =
         { currentForm: CurrentForm
           repeatPassword: string
           loginPayload: Option<LoginPayload>
           signupPayload: Option<SignUpPayload>
           error: Option<string> }
 
-    type ExternalMsg = 
-        | Authenticated
+    type ExternalMsg = | Authenticated
 
     type Msg =
         | SetForm of CurrentForm
@@ -39,230 +38,203 @@ module Auth =
         | RecvAuthentication of Result<AuthResponse, ErrorResponse>
         | Error of exn
 
-    let initSignPayload () =
-        Some { email = ""
-               password = ""
-               name = ""
-               lastName = "" } 
-    let initLoginPayload () = 
-        Some { email = ""; password = "" }
+    let initSignPayload() =
+        Some
+            { email = ""
+              password = ""
+              name = ""
+              lastName = "" }
 
-    let init = 
+    let initLoginPayload() =
+        Some
+            { email = ""
+              password = "" }
+
+    let init =
         { currentForm = SignUpForm
-          loginPayload = None 
+          loginPayload = None
           error = None
           repeatPassword = ""
-          signupPayload = 
-            Some { email = ""
-                   password = ""
-                   name = ""
-                   lastName = "" } 
-        }, Cmd.none
+          signupPayload =
+              Some
+                  { email = ""
+                    password = ""
+                    name = ""
+                    lastName = "" } }, Cmd.none
 
-    let update (state: State) (msg: Msg) (auth: AuthService) : State * Cmd<Msg> * Option<ExternalMsg> =
+    let update (state: State) (msg: Msg) (auth: AuthService): State * Cmd<Msg> * Option<ExternalMsg> =
         match msg with
-        | SetForm form -> 
-            let (lp, sp) = 
-                match form with 
-                | LoginForm -> initLoginPayload (), None
-                | SignUpForm -> None, initSignPayload ()
-            { state with currentForm = form; loginPayload = lp; signupPayload = sp }, Cmd.none, None
-        | SetField (field, value) ->
-            let state = 
-                match state.currentForm with 
-                | LoginForm -> 
-                    let formValues = 
-                        match field with 
-                        | Password ->
-                            Some { state.loginPayload.Value with  password = value }
-                        | Email ->
-                            Some { state.loginPayload.Value with  email = value }
+        | SetForm form ->
+            let (lp, sp) =
+                match form with
+                | LoginForm -> initLoginPayload(), None
+                | SignUpForm -> None, initSignPayload()
+            { state with
+                  currentForm = form
+                  loginPayload = lp
+                  signupPayload = sp }, Cmd.none, None
+        | SetField(field, value) ->
+            let state =
+                match state.currentForm with
+                | LoginForm ->
+                    let formValues =
+                        match field with
+                        | Password -> Some { state.loginPayload.Value with password = value }
+                        | Email -> Some { state.loginPayload.Value with email = value }
                         | _ -> failwith "Unexpected state"
                     { state with loginPayload = formValues }
                 | SignUpForm ->
-                    let formValues = 
-                        match field with 
-                        | FirstName ->
-                            Some { state.signupPayload.Value with  name = value }
-                        | LastName ->
-                            Some { state.signupPayload.Value with  lastName = value }
-                        | Password ->
-                            Some { state.signupPayload.Value with  password = value }
-                        | Email ->
-                            Some { state.signupPayload.Value with  email = value }
+                    let formValues =
+                        match field with
+                        | FirstName -> Some { state.signupPayload.Value with name = value }
+                        | LastName -> Some { state.signupPayload.Value with lastName = value }
+                        | Password -> Some { state.signupPayload.Value with password = value }
+                        | Email -> Some { state.signupPayload.Value with email = value }
                         | _ -> state.signupPayload
-                    
+
                     let prestate = { state with signupPayload = formValues }
-                    match field with 
+                    match field with
                     | RepeatPassword -> { prestate with repeatPassword = value }
                     | _ -> prestate
             state, Cmd.none, None
         | SubmitLogin ->
-            match state.loginPayload with 
-            | Some  payload -> 
-                match validateLogin payload  with 
-                | ValidationState.Ok -> 
-                    state, Cmd.ofAsync auth.login payload RecvAuthentication Error, None
+            match state.loginPayload with
+            | Some payload ->
+                match validateLogin payload with
+                | ValidationState.Ok -> state, Cmd.ofAsync auth.login payload RecvAuthentication Error, None
                 | ValidationState.Errors errors ->
-                    let err = 
-                        errors 
-                        |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message )
+                    let err =
+                        errors
+                        |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message)
                         |> String.concat ""
                     { state with error = Some err }, Cmd.none, None
             | None -> state, Cmd.none, None
         | SubmitSignUp ->
-            match state.signupPayload with 
+            match state.signupPayload with
             | Some payload ->
-                if payload.password <> state.repeatPassword then 
+                if payload.password <> state.repeatPassword then
                     { state with error = Some "Passwords do not match" }, Cmd.none, None
-                else 
+                else
                     match validateSignup payload with
                     | ValidationState.Ok -> state, Cmd.ofAsync auth.signup payload RecvAuthentication Error, None
                     | ValidationState.Errors errors ->
-                        let err = 
-                            errors 
-                            |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message )
+                        let err =
+                            errors
+                            |> List.map (fun err -> sprintf "[%s - %s]" err.property err.message)
                             |> String.concat ""
                         { state with error = Some err }, Cmd.none, None
             | None -> state, Cmd.none, None
         | RecvAuthentication result ->
-            match result with 
-            | Result.Ok auth -> 
+            match result with
+            | Result.Ok auth ->
                 let (state, cmd) = init
 
                 state, cmd, Some Authenticated
             | Result.Error err -> { state with error = Some err.message }, Cmd.none, None
-        | ClearError -> 
-            { state with error = None }, Cmd.none, None
-        | Error RemoteUnauthorizedException ->
-            { state with error = Some "Failed to authenticate" }, Cmd.none, None
-        | Error exn ->
-            { state with error = Some exn.Message }, Cmd.none, None
+        | ClearError -> { state with error = None }, Cmd.none, None
+        | Error RemoteUnauthorizedException -> { state with error = Some "Failed to authenticate" }, Cmd.none, None
+        | Error exn -> { state with error = Some exn.Message }, Cmd.none, None
 
     let private signUpForm (state: State) dispatch =
         let payload = state.signupPayload.Value
-        Html.form [ Classes ["fran-bg fran-auth-form"]; Html.on.submit(fun _ -> dispatch SubmitSignUp)]
-            [ Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "firstName"
-                    ]  
-                    [ Html.text "First Name" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "firstName"
-                      Html.attr.name "firstName"
-                      Html.attr.``type`` "text"
-                      Html.attr.required true
-                      Html.bind.input.string payload.name (fun v -> dispatch (SetField (FirstName, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "lastName"
-                    ] 
-                    [ Html.text "Last Name" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "lastName"
-                      Html.attr.name "lastName"
-                      Html.attr.``type`` "text"
-                      Html.attr.required true
-                      Html.bind.input.string payload.lastName (fun v -> dispatch (SetField (LastName, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "email"
-                    ] 
-                    [ Html.text "Email" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "email"
-                      Html.attr.name "email"
-                      Html.attr.``type`` "email"
-                      Html.attr.required true
-                      Html.bind.input.string payload.email (fun v -> dispatch (SetField (Email, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "password"
-                    ] 
-                    [ Html.text "Password" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "password"
-                      Html.attr.name "password"
-                      Html.attr.``type`` "password"
-                      Html.attr.required true
-                      Html.bind.input.string payload.password (fun v -> dispatch (SetField (Password, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "repeatPassword"
-                    ] 
-                    [ Html.text "Repeat your Password" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "repeatPassword"
-                      Html.attr.name "repeatPassword"
-                      Html.attr.``type`` "password"
-                      Html.attr.required true
-                      Html.bind.input.string state.repeatPassword (fun v -> dispatch (SetField (RepeatPassword, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section" ]; Html.attr.style "margin: 0.5em auto" ] 
-                [ Html.button 
-                    [ Classes [ "btn btn-primary" ]; Html.attr.``type`` "submit" ] 
-                    [ Html.text "Submit" ]
-                ]
-            ]
+        Html.form
+            [ Classes [ "fran-bg fran-auth-form" ]
+              Html.on.submit (fun _ -> dispatch SubmitSignUp) ]
+            [ Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "firstName" ] [ Html.text "First Name" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "firstName"
+                          Html.attr.name "firstName"
+                          Html.attr.``type`` "text"
+                          Html.attr.required true
+                          Html.bind.input.string payload.name (fun v -> dispatch (SetField(FirstName, v))) ] ]
+              Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "lastName" ] [ Html.text "Last Name" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "lastName"
+                          Html.attr.name "lastName"
+                          Html.attr.``type`` "text"
+                          Html.attr.required true
+                          Html.bind.input.string payload.lastName (fun v -> dispatch (SetField(LastName, v))) ] ]
+              Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "email" ] [ Html.text "Email" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "email"
+                          Html.attr.name "email"
+                          Html.attr.``type`` "email"
+                          Html.attr.required true
+                          Html.bind.input.string payload.email (fun v -> dispatch (SetField(Email, v))) ] ]
+              Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "password" ] [ Html.text "Password" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "password"
+                          Html.attr.name "password"
+                          Html.attr.``type`` "password"
+                          Html.attr.required true
+                          Html.bind.input.string payload.password (fun v -> dispatch (SetField(Password, v))) ] ]
+              Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "repeatPassword" ] [ Html.text "Repeat your Password" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "repeatPassword"
+                          Html.attr.name "repeatPassword"
+                          Html.attr.``type`` "password"
+                          Html.attr.required true
+                          Html.bind.input.string state.repeatPassword (fun v -> dispatch (SetField(RepeatPassword, v))) ] ]
+              Html.section
+                  [ Classes [ "form-section" ]
+                    Html.attr.style "margin: 0.5em auto" ]
+                  [ Html.button
+                      [ Classes [ "btn btn-primary" ]
+                        Html.attr.``type`` "submit" ] [ Html.text "Submit" ] ] ]
 
     let private loginForm (state: State) dispatch =
         let payload = state.loginPayload.Value
-        Html.form [ Classes ["fran-bg fran-auth-form"]; Html.on.submit(fun _ -> dispatch SubmitLogin)]
-            [ Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "email"
-                    ] 
-                    [ Html.text "Email" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "email"
-                      Html.attr.name "email"
-                      Html.attr.``type`` "email"
-                      Html.attr.required true
-                      Html.bind.input.string payload.email (fun v -> dispatch (SetField (Email, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section"] ] 
-                [ Html.label 
-                    [ Classes ["form-label"]
-                      Html.attr.``for`` "password"
-                    ] 
-                    [ Html.text "Password" ]
-                  Html.input 
-                    [ Classes [ "form-input" ]
-                      Html.attr.id "password"
-                      Html.attr.name "password"
-                      Html.attr.``type`` "password"
-                      Html.attr.required true
-                      Html.bind.input.string payload.password (fun v -> dispatch (SetField (Password, v)))
-                    ] 
-                ]
-              Html.section [ Classes ["form-section" ]; Html.attr.style "margin: 0.5em auto" ] 
-                [ Html.button 
-                    [ Classes [ "btn btn-primary" ]; Html.attr.``type`` "submit" ] 
-                    [ Html.text "Submit" ]
-                ]
-            ]
+        Html.form
+            [ Classes [ "fran-bg fran-auth-form" ]
+              Html.on.submit (fun _ -> dispatch SubmitLogin) ]
+            [ Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "email" ] [ Html.text "Email" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "email"
+                          Html.attr.name "email"
+                          Html.attr.``type`` "email"
+                          Html.attr.required true
+                          Html.bind.input.string payload.email (fun v -> dispatch (SetField(Email, v))) ] ]
+              Html.section [ Classes [ "form-section" ] ]
+                  [ Html.label
+                      [ Classes [ "form-label" ]
+                        Html.attr.``for`` "password" ] [ Html.text "Password" ]
+                    Html.input
+                        [ Classes [ "form-input" ]
+                          Html.attr.id "password"
+                          Html.attr.name "password"
+                          Html.attr.``type`` "password"
+                          Html.attr.required true
+                          Html.bind.input.string payload.password (fun v -> dispatch (SetField(Password, v))) ] ]
+              Html.section
+                  [ Classes [ "form-section" ]
+                    Html.attr.style "margin: 0.5em auto" ]
+                  [ Html.button
+                      [ Classes [ "btn btn-primary" ]
+                        Html.attr.``type`` "submit" ] [ Html.text "Submit" ] ] ]
 
     let private view (state: State) (dispatch: Msg -> unit) =
         let form =
@@ -275,27 +247,24 @@ module Auth =
             | LoginForm -> "active", ""
             | SignUpForm -> "", "active"
 
-        Html.article [ Classes ["fran-page"] ] 
-            [ Html.ul [ Classes ["tab tab-block"] ] 
-                [ Html.li 
-                    [ Classes ["tab-item c-hand"; loginClass ]
-                      Html.on.click(fun _ -> dispatch (SetForm LoginForm)) ] 
-                    [ Html.a [] [Html.text "Log in"]  ]
-                  Html.li 
-                    [ Classes ["tab-item c-hand"; signupClass ]
-                      Html.on.click(fun _ -> dispatch (SetForm SignUpForm)) ] 
-                    [ Html.a [] [Html.text "Sign up"] ]
-                ]
+        Html.article [ Classes [ "fran-page" ] ]
+            [ Html.ul [ Classes [ "tab tab-block" ] ]
+                  [ Html.li
+                      [ Classes [ "tab-item c-hand"; loginClass ]
+                        Html.on.click (fun _ -> dispatch (SetForm LoginForm)) ] [ Html.a [] [ Html.text "Log in" ] ]
+                    Html.li
+                        [ Classes [ "tab-item c-hand"; signupClass ]
+                          Html.on.click (fun _ -> dispatch (SetForm SignUpForm)) ]
+                        [ Html.a [] [ Html.text "Sign up" ] ] ]
               Html.cond state.error <| function
-              | Some err -> 
-                Html.div 
-                    [ Classes ["toast" ; "toast-error"] ] 
-                    [ Html.button [ Classes ["btn"; "btn-clear"; "float-right"]; Html.on.click(fun _ -> dispatch ClearError) ] []
-                      Html.textf "We have this issue: %s" err
-                    ]
+              | Some err ->
+                  Html.div [ Classes [ "toast"; "toast-error" ] ]
+                      [ Html.button
+                          [ Classes [ "btn"; "btn-clear"; "float-right" ]
+                            Html.on.click (fun _ -> dispatch ClearError) ] []
+                        Html.textf "We have this issue: %s" err ]
               | None -> Html.empty
-              form
-            ]
+              form ]
 
     type AuthPage() =
         inherit ElmishComponent<State, Msg>()

@@ -15,39 +15,19 @@ type Startup() =
     member this.ConfigureServices(services: IServiceCollection) =
         services.AddMvc().AddRazorRuntimeCompilation() |> ignore
         services.AddServerSideBlazor() |> ignore
-        services
-            .AddAuthorization()
-            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie()
-                .Services
-            .AddRemoting<AuthService>()
-            .AddRemoting<RecipeService>()
-            .AddRemoting<IngredientService>()
-            .AddRemoting<RecipeStepService>()
-            .AddBoleroHost()
-        |> ignore
+        services.AddAuthorization().AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie().Services.AddRemoting<AuthService>().AddRemoting<RecipeService>().AddRemoting<IngredientService>().AddRemoting<RecipeStepService>()
+            .AddBoleroHost() |> ignore
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     member this.Configure(app: IApplicationBuilder, env: IWebHostEnvironment) =
-        app
-            .UseAuthentication()
-            .UseRemoting()
-            .UseStaticFiles()
-            .UseRouting()
-            .UseBlazorFrameworkFiles()
-            .UseEndpoints(fun endpoints ->
-                endpoints.MapBlazorHub() |> ignore
-                endpoints.MapFallbackToPage("/_Host") |> ignore)
+        app.UseAuthentication().UseRemoting().UseStaticFiles().UseRouting().UseBlazorFrameworkFiles().UseEndpoints(fun endpoints ->
+           endpoints.MapBlazorHub() |> ignore
+           endpoints.MapFallbackToPage("/_Host") |> ignore)
         |> ignore
 
 module Program =
 
     [<EntryPoint>]
     let main args =
-        WebHost
-            .CreateDefaultBuilder(args)
-            .UseStaticWebAssets()
-            .UseStartup<Startup>()
-            .Build()
-            .Run()
+        WebHost.CreateDefaultBuilder(args).UseStaticWebAssets().UseStartup<Startup>().Build().Run()
         0

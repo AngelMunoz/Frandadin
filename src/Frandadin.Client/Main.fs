@@ -39,11 +39,12 @@ module Main =
           username = None
           error = None
           authState = authState },
-        Cmd.batch [ Cmd.ofMsg GetSignedInAs; authCmd ]
+        Cmd.batch
+            [ Cmd.ofMsg GetSignedInAs
+              authCmd ]
 
     /// Connects the routing system to the Elmish application.
-    let router =
-        Router.infer SetPage (fun state -> state.page)
+    let router = Router.infer SetPage (fun state -> state.page)
 
     let handleExtrnAuth (extrnMsg: Option<Pages.Auth.ExternalMsg>) =
         match extrnMsg with
@@ -66,36 +67,41 @@ module Main =
                 | None -> Cmd.none
 
             { state with username = username }, cmd
-        | Logout ->
-            state, Cmd.ofAuthorized authService.logout () RecvLogout Error
-        | RecvLogout -> 
-            { state with username = None; error = Some "You have ended your session" }, Cmd.none
+        | Logout -> state, Cmd.ofAuthorized authService.logout () RecvLogout Error
+        | RecvLogout ->
+            { state with
+                  username = None
+                  error = Some "You have ended your session" }, Cmd.none
         | AuthMsg authmsg ->
-            let (authstate, cmd, extrnMsg) =
-                Pages.Auth.update state.authState authmsg authService
+            let (authstate, cmd, extrnMsg) = Pages.Auth.update state.authState authmsg authService
 
             let handled = handleExtrnAuth extrnMsg
-            { state with authState = authstate }, Cmd.batch [ Cmd.map AuthMsg cmd; handled ]
+            { state with authState = authstate },
+            Cmd.batch
+                [ Cmd.map AuthMsg cmd
+                  handled ]
         | Error RemoteUnauthorizedException ->
             { state with
                   error = Some "You have been logged out."
-                  username = None },
-            Cmd.none
+                  username = None }, Cmd.none
         | Error exn -> { state with error = Some exn.Message }, Cmd.none
 
-    let private rightAuthMenu =
-        a [ Classes [ "btn btn-link" ] ] [ text "Welcome" ]
+    let private rightAuthMenu = a [ Classes [ "btn btn-link" ] ] [ text "Welcome" ]
 
     let private recipesMenuContent =
-        navLink NavLinkMatch.All [attr.href "/" ; Classes [ "btn btn-link" ] ] [text "Recipes"]
+        navLink NavLinkMatch.All
+            [ attr.href "/"
+              Classes [ "btn btn-link" ] ] [ text "Recipes" ]
 
     let private authView (authState: Pages.Auth.State) dispatch =
         ecomp<Pages.Auth.AuthPage, Pages.Auth.State, Pages.Auth.Msg> [] authState (AuthMsg >> dispatch)
 
-    let private leftAuthMenu dispatch = 
-        a [ Classes [ "btn btn-link" ]; Html.on.click(fun _ -> dispatch Logout) ] [ text "Log out" ]
+    let private leftAuthMenu dispatch =
+        a
+            [ Classes [ "btn btn-link" ]
+              Html.on.click (fun _ -> dispatch Logout) ] [ text "Log out" ]
 
-    let private body (page : Page) : Node =
+    let private body (page: Page): Node =
         cond page <| function
         | Recipes -> comp<Pages.Recipes.RecipesPage> [] []
         | Recipe recipeId -> comp<Pages.Recipe.RecipePage> [ "recipeId" => Some recipeId ] []
@@ -107,15 +113,13 @@ module Main =
             | Some _ -> body state.page, recipesMenuContent, leftAuthMenu dispatch
             | None -> authView state.authState dispatch, rightAuthMenu, Html.empty
 
-        Html.article [ Classes ["fran-content"] ]
-            [ Html.header [ Classes ["navbar"; "fran-nav"; "fran-bg" ]] 
-                [ Html.section [ Classes ["navbar-section"] ] [ leftMenu ]
-                  Html.section [ Classes ["navbar-center"] ] []
-                  Html.section [ Classes ["navbar-section"] ] [ rightMenu ]
-                ]
-              Html.main [ Classes ["fran-main"] ] [ body ]
-              Html.footer [ Classes ["fran-footer"] ] [ Html.text "Some Footer" ] 
-            ]
+        Html.article [ Classes [ "fran-content" ] ]
+            [ Html.header [ Classes [ "navbar"; "fran-nav"; "fran-bg" ] ]
+                  [ Html.section [ Classes [ "navbar-section" ] ] [ leftMenu ]
+                    Html.section [ Classes [ "navbar-center" ] ] []
+                    Html.section [ Classes [ "navbar-section" ] ] [ rightMenu ] ]
+              Html.main [ Classes [ "fran-main" ] ] [ body ]
+              Html.footer [ Classes [ "fran-footer" ] ] [ Html.text "Some Footer" ] ]
 
     type FrandadinApp() =
         inherit ProgramComponent<State, Msg>()
@@ -124,6 +128,4 @@ module Main =
             let authService = this.Remote<AuthService>()
             let update msg state = update msg state authService
 
-            Program.mkProgram init update view
-            |> Program.withRouter router
-
+            Program.mkProgram init update view |> Program.withRouter router

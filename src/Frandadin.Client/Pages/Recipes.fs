@@ -1,6 +1,6 @@
-﻿namespace Frandadin.Client.Pages
+namespace Frandadin.Client.Pages
 
-module Recipes = 
+module Recipes =
     open Elmish
     open Bolero
     open Bolero.Remoting
@@ -12,19 +12,18 @@ module Recipes =
         { count: int }
 
     type Msg =
-        | Increment 
+        | Increment
         | Decrement
 
-    let private init _ = 
-        { count = 0 }, Cmd.none
+    let private init _ = { count = 0 }, Cmd.none
 
-    let private update (msg: Msg) (state: State) (recipes: RecipeService) = 
-        match msg with 
+    let private update (msg: Msg) (state: State) (recipes: RecipeService) =
+        match msg with
         | Increment -> { state with count = state.count + 1 }, Cmd.none
         | Decrement -> { state with count = state.count - 1 }, Cmd.none
 
-    let private view (state: State) (dispatch: Msg -> unit) = 
-        Html.article [ Classes ["fran-page"] ] [ Html.text "Recipes!" ]
+    let private view (state: State) (dispatch: Msg -> unit) =
+        Html.article [ Classes [ "fran-page" ] ] [ Html.text "Recipes!" ]
 
     type RecipesPage() =
         inherit ProgramComponent<State, Msg>()
