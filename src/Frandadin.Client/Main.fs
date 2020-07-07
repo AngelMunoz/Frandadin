@@ -98,7 +98,7 @@ module Main =
     let private body (page : Page) : Node =
         cond page <| function
         | Recipes -> comp<Pages.Recipes.RecipesPage> [] []
-        | Recipe recipeId -> comp<Pages.Recipes.RecipesPage> [ "recipeId" => Some recipeId ] []
+        | Recipe recipeId -> comp<Pages.Recipe.RecipePage> [ "recipeId" => Some recipeId ] []
 
     let view (state: State) (dispatch: Msg -> unit) =
 
