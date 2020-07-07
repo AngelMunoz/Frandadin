@@ -82,6 +82,20 @@ module Validators =
               ]
             }
 
+    let validateAnonymusIngredient =
+        createValidatorFor<{| recipeid: int; name: string; quantity: string |}>() 
+            { validate (fun i -> i.name) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 100
+              ]
+              validate (fun i -> i.quantity) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 30
+              ]
+            }
+
     let validateRecipeStep =
         createValidatorFor<RecipeStep>() 
             { validate (fun i -> i.order) [
@@ -96,7 +110,24 @@ module Validators =
                 isNotEmptyOrWhitespace
                 hasMaxLengthOf 254
               ]
-            }   
+            } 
+
+    let validateAnonymusRecipeStep =
+        createValidatorFor<{| recipeid: int; order: int; directions: string; imageUrl: Option<string> |}>() 
+            { validate (fun i -> i.order) [
+                isGreaterThan 0
+              ]
+              validate (fun i -> i.directions) [
+                isNotNull
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 500
+              ]
+              validateUnrequired (fun i -> i.imageUrl) [
+                isNotEmptyOrWhitespace
+                hasMaxLengthOf 254
+              ]
+            } 
+
     /// Used to validate Existing recipes (recipes with id and userid)   
     let validateRecipe = 
         createValidatorFor<Recipe>() 
@@ -134,9 +165,7 @@ module Validators =
             {| title: string 
                imageUrl: Option<string>
                description: Option<string>
-               notes: Option<string>
-               ingredients: list<Ingredient>
-               steps: list<RecipeStep> |}> () 
+               notes: Option<string> |}> () 
             { validate (fun r -> r.title) [
                 isNotNull
                 isNotEmptyOrWhitespace
@@ -155,11 +184,5 @@ module Validators =
                 isNotNull
                 isNotEmptyOrWhitespace
                 hasMaxLengthOf 240
-              ]
-              validate (fun r -> r.ingredients) [
-                  eachItemWith validateIngredient
-              ]
-              validate (fun r -> r.steps) [
-                  eachItemWith validateRecipeStep
               ]
             }
