@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL CHECK (name <> ''),
-  lastName VARCHAR(100) NOT NULL CHECK (lastName<> ''),
+  lastname VARCHAR(100) NOT NULL CHECK (lastName<> ''),
   email VARCHAR(100) NOT NULL CHECK (email <> ''),
   password VARCHAR(100) NOT NULL CHECK (password <> ''),
   UNIQUE(email)
