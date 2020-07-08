@@ -9,6 +9,7 @@ module Recipe =
     open Frandadin.Client.Services
     open Microsoft.AspNetCore.Components
     open Frandadin.Client.Types
+    open Frandadin.Client.Css
 
     type State =
         { id: Option<int>
@@ -44,7 +45,7 @@ module Recipe =
         | Error exn -> { state with error = Some exn.Message }, Cmd.none
 
     let private view (state: State) (dispatch: Msg -> unit) =
-        Html.article [ Classes [ "fran-page" ] ] [ Html.textf "Recipe %A!" state.id ]
+        Html.article [ Classes [ css.franPage ] ] [ Html.textf "Recipe %A!" state.id ]
 
     type RecipePage() =
         inherit ProgramComponent<State, Msg>()

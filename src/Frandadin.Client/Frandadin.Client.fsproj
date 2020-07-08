@@ -8,6 +8,8 @@
     <Compile Include="Types.fs" />
     <Compile Include="Services.fs" />
     <Compile Include="Validators.fs" />
+    <Compile Include="Css.fs" />
+    <Compile Include="Components\RecipeForm.fs" />
     <Compile Include="Pages\Recipe.fs" />
     <Compile Include="Pages\Recipes.fs" />
     <Compile Include="Pages\Auth.fs" />
@@ -21,6 +23,7 @@
     <PackageReference Include="Bolero.HotReload" Version="0.13.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Build" Version="3.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="3.2.0" />
+    <PackageReference Include="Zanaptak.TypedCssClasses" Version="0.2.0" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.2" />

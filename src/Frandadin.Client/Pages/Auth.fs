@@ -8,6 +8,7 @@ module Auth =
     open Frandadin.Client.Types
     open Frandadin.Client.Services
     open Frandadin.Client.Validators
+    open Frandadin.Client.Css
 
     type CurrentForm =
         | LoginForm
@@ -138,99 +139,99 @@ module Auth =
     let private signUpForm (state: State) dispatch =
         let payload = state.signupPayload.Value
         Html.form
-            [ Classes [ "fran-bg fran-auth-form" ]
+            [ Classes [ css.franBg; css.franAuthForm ]
               Html.on.submit (fun _ -> dispatch SubmitSignUp) ]
-            [ Html.section [ Classes [ "form-section" ] ]
+            [ Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "firstName" ] [ Html.text "First Name" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "firstName"
                           Html.attr.name "firstName"
                           Html.attr.``type`` "text"
                           Html.attr.required true
                           Html.bind.input.string payload.name (fun v -> dispatch (SetField(FirstName, v))) ] ]
-              Html.section [ Classes [ "form-section" ] ]
+              Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "lastName" ] [ Html.text "Last Name" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "lastName"
                           Html.attr.name "lastName"
                           Html.attr.``type`` "text"
                           Html.attr.required true
                           Html.bind.input.string payload.lastName (fun v -> dispatch (SetField(LastName, v))) ] ]
-              Html.section [ Classes [ "form-section" ] ]
+              Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "email" ] [ Html.text "Email" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "email"
                           Html.attr.name "email"
                           Html.attr.``type`` "email"
                           Html.attr.required true
                           Html.bind.input.string payload.email (fun v -> dispatch (SetField(Email, v))) ] ]
-              Html.section [ Classes [ "form-section" ] ]
+              Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "password" ] [ Html.text "Password" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "password"
                           Html.attr.name "password"
                           Html.attr.``type`` "password"
                           Html.attr.required true
                           Html.bind.input.string payload.password (fun v -> dispatch (SetField(Password, v))) ] ]
-              Html.section [ Classes [ "form-section" ] ]
+              Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "repeatPassword" ] [ Html.text "Repeat your Password" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "repeatPassword"
                           Html.attr.name "repeatPassword"
                           Html.attr.``type`` "password"
                           Html.attr.required true
                           Html.bind.input.string state.repeatPassword (fun v -> dispatch (SetField(RepeatPassword, v))) ] ]
               Html.section
-                  [ Classes [ "form-section" ]
+                  [ Classes [ Spectre.formGroup ]
                     Html.attr.style "margin: 0.5em auto" ]
                   [ Html.button
-                      [ Classes [ "btn btn-primary" ]
+                      [ Classes [ Spectre.btn; Spectre.btnPrimary ]
                         Html.attr.``type`` "submit" ] [ Html.text "Submit" ] ] ]
 
     let private loginForm (state: State) dispatch =
         let payload = state.loginPayload.Value
         Html.form
-            [ Classes [ "fran-bg fran-auth-form" ]
+            [ Classes [ css.franBg; css.franAuthForm ]
               Html.on.submit (fun _ -> dispatch SubmitLogin) ]
-            [ Html.section [ Classes [ "form-section" ] ]
+            [ Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "email" ] [ Html.text "Email" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "email"
                           Html.attr.name "email"
                           Html.attr.``type`` "email"
                           Html.attr.required true
                           Html.bind.input.string payload.email (fun v -> dispatch (SetField(Email, v))) ] ]
-              Html.section [ Classes [ "form-section" ] ]
+              Html.section [ Classes [ Spectre.formGroup ] ]
                   [ Html.label
-                      [ Classes [ "form-label" ]
+                      [ Classes [ Spectre.formLabel ]
                         Html.attr.``for`` "password" ] [ Html.text "Password" ]
                     Html.input
-                        [ Classes [ "form-input" ]
+                        [ Classes [ Spectre.formInput ]
                           Html.attr.id "password"
                           Html.attr.name "password"
                           Html.attr.``type`` "password"
                           Html.attr.required true
                           Html.bind.input.string payload.password (fun v -> dispatch (SetField(Password, v))) ] ]
               Html.section
-                  [ Classes [ "form-section" ]
+                  [ Classes [ Spectre.formGroup ]
                     Html.attr.style "margin: 0.5em auto" ]
                   [ Html.button
                       [ Classes [ "btn btn-primary" ]
@@ -244,23 +245,23 @@ module Auth =
 
         let (loginClass, signupClass) =
             match state.currentForm with
-            | LoginForm -> "active", ""
-            | SignUpForm -> "", "active"
+            | LoginForm -> Spectre.active, ""
+            | SignUpForm -> "", Spectre.active
 
-        Html.article [ Classes [ "fran-page" ] ]
-            [ Html.ul [ Classes [ "tab tab-block" ] ]
+        Html.article [ Classes [ css.franPage ] ]
+            [ Html.ul [ Classes [ Spectre.tab; Spectre.tabBlock ] ]
                   [ Html.li
-                      [ Classes [ "tab-item c-hand"; loginClass ]
+                      [ Classes [ Spectre.tabItem; Spectre.cHand; loginClass ]
                         Html.on.click (fun _ -> dispatch (SetForm LoginForm)) ] [ Html.a [] [ Html.text "Log in" ] ]
                     Html.li
-                        [ Classes [ "tab-item c-hand"; signupClass ]
+                        [ Classes [ Spectre.tabItem; Spectre.cHand; signupClass ]
                           Html.on.click (fun _ -> dispatch (SetForm SignUpForm)) ]
                         [ Html.a [] [ Html.text "Sign up" ] ] ]
               Html.cond state.error <| function
               | Some err ->
-                  Html.div [ Classes [ "toast"; "toast-error" ] ]
+                  Html.div [ Classes [ Spectre.toast; Spectre.toastError ] ]
                       [ Html.button
-                          [ Classes [ "btn"; "btn-clear"; "float-right" ]
+                          [ Classes [ Spectre.btn; Spectre.btnClear; Spectre.floatRight ]
                             Html.on.click (fun _ -> dispatch ClearError) ] []
                         Html.textf "We have this issue: %s" err ]
               | None -> Html.empty

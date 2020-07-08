@@ -10,6 +10,7 @@ module Main =
     open Microsoft.AspNetCore.Components.Routing
 
     open Services
+    open Css
 
     /// Routing endpoints definition.
     type Page =
@@ -86,19 +87,19 @@ module Main =
                   username = None }, Cmd.none
         | Error exn -> { state with error = Some exn.Message }, Cmd.none
 
-    let private rightAuthMenu = a [ Classes [ "btn btn-link" ] ] [ text "Welcome" ]
+    let private rightAuthMenu = a [ Classes [ Spectre.btn; Spectre.btnLink ] ] [ text "Welcome" ]
 
     let private recipesMenuContent =
         navLink NavLinkMatch.All
             [ attr.href "/"
-              Classes [ "btn btn-link" ] ] [ text "Recipes" ]
+              Classes [ Spectre.btn; Spectre.btnLink ] ] [ text "Recipes" ]
 
     let private authView (authState: Pages.Auth.State) dispatch =
         ecomp<Pages.Auth.AuthPage, Pages.Auth.State, Pages.Auth.Msg> [] authState (AuthMsg >> dispatch)
 
     let private leftAuthMenu dispatch =
         a
-            [ Classes [ "btn btn-link" ]
+            [ Classes [ Spectre.btn; Spectre.btnLink ]
               Html.on.click (fun _ -> dispatch Logout) ] [ text "Log out" ]
 
     let private body (page: Page): Node =
@@ -113,13 +114,13 @@ module Main =
             | Some _ -> body state.page, recipesMenuContent, leftAuthMenu dispatch
             | None -> authView state.authState dispatch, rightAuthMenu, Html.empty
 
-        Html.article [ Classes [ "fran-content" ] ]
-            [ Html.header [ Classes [ "navbar"; "fran-nav"; "fran-bg" ] ]
-                  [ Html.section [ Classes [ "navbar-section" ] ] [ leftMenu ]
-                    Html.section [ Classes [ "navbar-center" ] ] []
-                    Html.section [ Classes [ "navbar-section" ] ] [ rightMenu ] ]
-              Html.main [ Classes [ "fran-main" ] ] [ body ]
-              Html.footer [ Classes [ "fran-footer" ] ] [ Html.text "Some Footer" ] ]
+        Html.article [ Classes [ css.franContent ] ]
+            [ Html.header [ Classes [ Spectre.navbar; css.franBg ] ]
+                  [ Html.section [ Classes [ Spectre.navbarSection ] ] [ leftMenu ]
+                    Html.section [ Classes [ Spectre.navbarCenter ] ] []
+                    Html.section [ Classes [ Spectre.navbarSection ] ] [ rightMenu ] ]
+              Html.main [ Classes [ css.franMain ] ] [ body ]
+              Html.footer [ Classes [ css.franFooter ] ] [ Html.text "Some Footer" ] ]
 
     type FrandadinApp() =
         inherit ProgramComponent<State, Msg>()
