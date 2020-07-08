@@ -6,10 +6,6 @@ end_of_line = lf
 indent_style = space
 insert_final_newline = true
 
-[*.{fs,fsx}]
-indent_size = 4
-trim_trailing_whitespace = true
-
 [*.fs]
 indent_size=4
 max_line_length=80
